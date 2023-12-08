@@ -1,7 +1,7 @@
 
-import { getBuffer, encodeBase64Async, decodeBase64Async, match, bufToHex } from "./utils"
-import { Blake2b } from "./blake2b"
-import { getDecodeBase64Length } from "hash-wasm/lib/util"
+import { instantiate, getMemoryBuffer, getInstanceExports } from './utils'
+import { getBuffer, encodeBase64Async, match, bufToHex } from './utils'
+import { Blake2b } from './blake2b'
 
 const { floor, ceil } = Math
 const uint32U8 = new Uint8Array(4)
@@ -48,7 +48,6 @@ const createHashFunc = async (blake512, len = 1024) => {
   }
 }
 
-const { instantiate } = WebAssembly
 let module, blake512, hash1024
 export class Argon2 {
   static init(data) { module = data }
@@ -73,8 +72,8 @@ export class Argon2 {
   }
   #salt; get salt() { return this.#salt }
   #digest; get digest() { return this.#digest }
-  constructor([{ exports }, { init, update, digest }, hash1024, hashFunc], options) {
-    const { memory, Hash_SetMemorySize, Hash_GetBuffer, Hash_Calculate } = exports
+  constructor([instance, { init, update, digest }, hash1024, hashFunc], options) {
+    const { memory, Hash_SetMemorySize, Hash_GetBuffer, Hash_Calculate } = getInstanceExports(instance)
     const { hashType, memorySize, iterations, parallelism, hashLength } = options
     const version = 0x13
 
@@ -82,7 +81,7 @@ export class Argon2 {
     const memoryByteSize = memorySize * 1024
     Hash_SetMemorySize(memoryByteSize + 1024)
     const arrayOffset = Hash_GetBuffer()
-    const memoryBuffer = memory.buffer
+    const memoryBuffer = getMemoryBuffer(memory)
     const memoryU8 = new Uint8Array(memoryBuffer, arrayOffset, memoryByteSize + 1024)
     const memoryResult = new Uint8Array(memoryBuffer, arrayOffset, 1024)
 

@@ -1,5 +1,7 @@
 
-const { instantiate } = WebAssembly, { isInteger } = Number
+import { instantiate, getMemoryBuffer, getInstanceExports } from './utils'
+
+const { isInteger } = Number
 const MAX_HEAP = 16 * 1024
 let module
 export class Blake2b {
@@ -20,8 +22,9 @@ export class Blake2b {
   #digest; get digest() { return this.#digest }
   get blockSize() { return 128 }
   #digestSize; get digestSize() { return this.#digestSize }
-  constructor({ exports: { memory, Hash_GetBuffer, Hash_Init, Hash_Update, Hash_Final } }, bits) {
-    const memoryBuffer = memory.buffer
+  constructor(instance, bits) {
+    const { memory, Hash_GetBuffer, Hash_Init, Hash_Update, Hash_Final } = getInstanceExports(instance)
+    const memoryBuffer = getMemoryBuffer(memory)
     const memoryOffset = Hash_GetBuffer()
     const digestSize = this.#digestSize = bits / 8
 
